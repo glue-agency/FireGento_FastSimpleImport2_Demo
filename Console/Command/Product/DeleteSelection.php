@@ -100,6 +100,20 @@ class DeleteSelection extends AbstractImportCommand
         return $data;
     }
 
+    protected function mergeIterationObecjts($csvIterationObjects){
+        $data = [];
+
+        foreach($csvIterationObjects as $csvIterationObject){
+            foreach ($csvIterationObject as $row){
+                $data[] = $row;
+            }
+        }
+
+        $data = array_unique($data,SORT_REGULAR);
+
+        return $data;
+    }
+
     protected function readCSV()
     {
         $csvObj = Reader::createFromString($this->readFile(static::IMPORT_FILE));
