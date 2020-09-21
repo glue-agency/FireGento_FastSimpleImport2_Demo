@@ -77,11 +77,14 @@ class DeleteSelection extends AbstractImportCommand
      */
     protected function getEntities()
     {
-        try{
-            $csvIterationObject = $this->readCSV();
-        }catch (\Exception $exception){
-            echo $exception->getMessage();
-            return [[]];
+        if(!$this->folderArgumentProvided()){
+            $csvIterationObject = $this->getIterationObject();
+        }else{
+            foreach(glob($this->input->getOption('folder').'/*.csv') as $file){
+                $this->filePath = $file;
+                $csvIterationObjects[] = $this->getIterationObject();
+            }
+            $csvIterationObject = $this->mergeIterationObecjts($csvIterationObjects);
         }
 
         $data = [];
