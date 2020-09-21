@@ -23,6 +23,8 @@ class DeleteSelection extends AbstractImportCommand
 
     private $input;
 
+    private $filePath;
+
     /**
      * @var \Magento\Framework\Filesystem\Directory\ReadFactory
      */
@@ -126,18 +128,15 @@ class DeleteSelection extends AbstractImportCommand
     }
 
     protected function getFilePath(){
-        return dirname($this->input->getOption('file'));
+        return dirname($this->filePath);
     }
 
     protected function getFileName(){
-        return basename($this->input->getOption('file'));
+        return basename($this->filePath);
     }
 
     protected function fileArgumentProvided(){
-        if ($this->input->getOption('file')) {
-            return file_exists($this->input->getOption('file'));
-        }
-        return false;
+        return !is_null($this->filePath);
     }
 
     protected function isForced(){
@@ -147,6 +146,9 @@ class DeleteSelection extends AbstractImportCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->input = $input;
+        if($this->input->getOption('file') && file_exists($this->input->getOption('file'))){
+            $this->filePath = $this->input->getOption('file');
+        }
         parent::execute($input, $output);
     }
 }
