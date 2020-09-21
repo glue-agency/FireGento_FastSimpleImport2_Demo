@@ -87,11 +87,6 @@ class DeleteSelection extends AbstractImportCommand
             $data[] = $row;
         }
 
-        if($this->fileArgumentProvided()){
-            echo PHP_EOL.'input file:'.$this->getFilePath().'/'.$this->getFileName().PHP_EOL;
-        }else{
-            echo PHP_EOL.'input file (default file):'.$this->directory_list->getRoot().'/'.self::IMPORT_FILE.PHP_EOL;
-        }
         echo PHP_EOL.'sku list to be deleted: '.implode(',',array_column($data,'sku')).PHP_EOL;
 
         if(!$this->isForced()){
@@ -141,6 +136,14 @@ class DeleteSelection extends AbstractImportCommand
 
     protected function isForced(){
         return $this->input->getOption('force');
+    }
+
+    protected function emitInputFileLog(){
+        if($this->fileArgumentProvided()){
+            echo PHP_EOL.'input file:'.$this->getFilePath().'/'.$this->getFileName().PHP_EOL;
+        }else{
+            echo PHP_EOL.'input file (default file):'.$this->directory_list->getRoot().'/'.self::IMPORT_FILE.PHP_EOL;
+        }
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
