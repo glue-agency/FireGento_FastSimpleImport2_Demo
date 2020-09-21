@@ -23,6 +23,8 @@ class DeleteSelection extends AbstractImportCommand
 
     private $input;
 
+    private $filePath;
+
     /**
      * @var \Magento\Framework\Filesystem\Directory\ReadFactory
      */
@@ -61,6 +63,8 @@ class DeleteSelection extends AbstractImportCommand
         $this->setDefinition([
             new InputOption('file', null, InputOption::VALUE_OPTIONAL,
                 'absolute path of file to be imported for sku list'),
+            new InputOption('folder', null, InputOption::VALUE_OPTIONAL,
+                'absolute path of folder of multiple files to be bulk imported for sku list'),
             new InputOption('force', 'f', InputOption::VALUE_NONE,
                 'Force deletion'),
         ]);
@@ -73,11 +77,14 @@ class DeleteSelection extends AbstractImportCommand
      */
     protected function getEntities()
     {
-        try{
-            $csvIterationObject = $this->readCSV();
-        }catch (\Exception $exception){
-            echo $exception->getMessage();
-            return [];
+        if(!$this->folderArgumentProvided()){
+            $csvIterationObject = $this->getIterationObject();
+        }else{
+            foreach(glob($this->input->getOption('folder').'/*.csv') as $file){
+                $this->filePath = $file;
+                $csvIterationObjects[] = $this->getIterationObject();
+            }
+            $csvIterationObject = $this->mergeIterationObecjts($csvIterationObjects);
         }
 
         $data = [];
@@ -85,19 +92,28 @@ class DeleteSelection extends AbstractImportCommand
             $data[] = $row;
         }
 
-        if($this->fileArgumentProvided()){
-            echo PHP_EOL.'input file:'.$this->getFilePath().'/'.$this->getFileName().PHP_EOL;
-        }else{
-            echo PHP_EOL.'input file (default file):'.$this->directory_list->getRoot().'/'.self::IMPORT_FILE.PHP_EOL;
-        }
         echo PHP_EOL.'sku list to be deleted: '.implode(',',array_column($data,'sku')).PHP_EOL;
 
         if(!$this->isForced()){
             echo PHP_EOL.'this is dry-run mode, no entites returned'.PHP_EOL;
-            return [];
+            return [[]];
         }
 
         echo PHP_EOL.'this is not dry-run mode, all entities returned'.PHP_EOL;
+        return $data;
+    }
+
+    protected function mergeIterationObecjts($csvIterationObjects){
+        $data = [];
+
+        foreach($csvIterationObjects as $csvIterationObject){
+            foreach ($csvIterationObject as $row){
+                $data[] = $row;
+            }
+        }
+
+        $data = array_unique($data,SORT_REGULAR);
+
         return $data;
     }
 
@@ -109,6 +125,18 @@ class DeleteSelection extends AbstractImportCommand
         $results = (new Statement())->process($csvObj);
 
         return $results;
+    }
+
+    protected function getIterationObject(){
+        try{
+            $csvIterationObject = $this->readCSV();
+        }catch (\Exception $exception){
+            echo $exception->getMessage();
+            return [[]];
+        }
+        $this->emitInputFileLog();
+
+        return $csvIterationObject;
     }
 
     protected function readFile($fileName)
@@ -126,27 +154,39 @@ class DeleteSelection extends AbstractImportCommand
     }
 
     protected function getFilePath(){
-        return dirname($this->input->getOption('file'));
+        return dirname($this->filePath);
     }
 
     protected function getFileName(){
-        return basename($this->input->getOption('file'));
+        return basename($this->filePath);
     }
 
     protected function fileArgumentProvided(){
-        if ($this->input->getOption('file')) {
-            return file_exists($this->input->getOption('file'));
-        }
-        return false;
+        return !is_null($this->filePath);
+    }
+
+    protected function folderArgumentProvided(){
+        return $this->input->getOption('folder') && file_exists($this->input->getOption('folder'));
     }
 
     protected function isForced(){
         return $this->input->getOption('force');
     }
 
+    protected function emitInputFileLog(){
+        if($this->fileArgumentProvided()){
+            echo PHP_EOL.'input file:'.$this->getFilePath().'/'.$this->getFileName().PHP_EOL;
+        }else{
+            echo PHP_EOL.'input file (default file):'.$this->directory_list->getRoot().'/'.self::IMPORT_FILE.PHP_EOL;
+        }
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->input = $input;
+        if($this->input->getOption('file') && file_exists($this->input->getOption('file'))){
+            $this->filePath = $this->input->getOption('file');
+        }
         parent::execute($input, $output);
     }
 }
