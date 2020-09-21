@@ -63,6 +63,8 @@ class DeleteSelection extends AbstractImportCommand
         $this->setDefinition([
             new InputOption('file', null, InputOption::VALUE_OPTIONAL,
                 'absolute path of file to be imported for sku list'),
+            new InputOption('folder', null, InputOption::VALUE_OPTIONAL,
+                'absolute path of folder of multiple files to be bulk imported for sku list'),
             new InputOption('force', 'f', InputOption::VALUE_NONE,
                 'Force deletion'),
         ]);
@@ -132,6 +134,10 @@ class DeleteSelection extends AbstractImportCommand
 
     protected function fileArgumentProvided(){
         return !is_null($this->filePath);
+    }
+
+    protected function folderArgumentProvided(){
+        return $this->input->getOption('folder') && file_exists($this->input->getOption('folder'));
     }
 
     protected function isForced(){
