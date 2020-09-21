@@ -77,7 +77,7 @@ class DeleteSelection extends AbstractImportCommand
             $csvIterationObject = $this->readCSV();
         }catch (\Exception $exception){
             echo $exception->getMessage();
-            return [];
+            return [[]];
         }
 
         $data = [];
@@ -94,7 +94,7 @@ class DeleteSelection extends AbstractImportCommand
 
         if(!$this->isForced()){
             echo PHP_EOL.'this is dry-run mode, no entites returned'.PHP_EOL;
-            return [];
+            return [[]];
         }
 
         echo PHP_EOL.'this is not dry-run mode, all entities returned'.PHP_EOL;
