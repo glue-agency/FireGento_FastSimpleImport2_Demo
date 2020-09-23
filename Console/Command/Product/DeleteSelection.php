@@ -23,6 +23,8 @@ class DeleteSelection extends AbstractImportCommand
 
     private $input;
 
+    private $validSkuList;
+
     private $filePath;
 
     /**
@@ -35,6 +37,8 @@ class DeleteSelection extends AbstractImportCommand
      */
     private $directory_list;
 
+    protected $_productCollectionFactory;
+
     /**
      * Constructor
      *
@@ -43,7 +47,8 @@ class DeleteSelection extends AbstractImportCommand
     public function __construct(
         ObjectManagerFactory $objectManagerFactory,
         \Magento\Framework\Filesystem\Directory\ReadFactory $readFactory,
-        \Magento\Framework\App\Filesystem\DirectoryList $directory_list
+        \Magento\Framework\App\Filesystem\DirectoryList $directory_list,
+        \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productCollectionFactory
     ) {
 
         parent::__construct($objectManagerFactory);
@@ -51,6 +56,8 @@ class DeleteSelection extends AbstractImportCommand
         $this->readFactory = $readFactory;
 
         $this->directory_list = $directory_list;
+
+        $this->_productCollectionFactory = $productCollectionFactory;
     }
 
     protected function configure()
@@ -87,9 +94,17 @@ class DeleteSelection extends AbstractImportCommand
             $csvIterationObject = $this->mergeIterationObecjts($csvIterationObjects);
         }
 
+        echo PHP_EOL.'input rows now being filtered. proceed only with sku\'s that are known in magento. we collect now all skus.'.PHP_EOL;
+
+        $this->initSkuList();
+
         $data = [];
         foreach ($csvIterationObject as $row) {
-            $data[] = $row;
+            if($this->skuIsValidInMagento($row)){
+                $data[] = $row;
+            }else{
+                echo PHP_EOL.'sku is not know in magento, so we must skip it: '.$row['sku'];
+            }
         }
 
         echo PHP_EOL.'sku list to be deleted: '.implode(',',array_column($data,'sku')).PHP_EOL;
@@ -115,6 +130,10 @@ class DeleteSelection extends AbstractImportCommand
         $data = array_unique($data,SORT_REGULAR);
 
         return $data;
+    }
+
+    protected function skuIsValidInMagento($rowValues){
+        return in_array($rowValues['sku'],$this->validSkuList);
     }
 
     protected function readCSV()
@@ -188,5 +207,16 @@ class DeleteSelection extends AbstractImportCommand
             $this->filePath = $this->input->getOption('file');
         }
         parent::execute($input, $output);
+    }
+
+    protected function getProductCollection()
+    {
+        $collection = $this->_productCollectionFactory->create();
+        $collection->addAttributeToSelect('sku');
+        return $collection->getColumnValues('sku');
+    }
+
+    protected function initSkuList(){
+        $this->validSkuList = $this->getProductCollection();
     }
 }
